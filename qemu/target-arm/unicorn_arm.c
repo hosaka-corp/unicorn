@@ -9,6 +9,8 @@
 #include "unicorn_common.h"
 #include "uc_priv.h"
 
+#include "internals.h"
+
 const int ARM_REGS_STORAGE_SIZE = offsetof(CPUARMState, tlb_table);
 
 static void arm_set_pc(struct uc_struct *uc, uint64_t address)
@@ -56,6 +58,8 @@ int arm_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
 {
     CPUState *mycpu;
     int i;
+    unsigned int cpsr;
+    int banknum;
 
     mycpu = uc->cpu;
 
@@ -107,6 +111,11 @@ int arm_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
                  case UC_ARM_REG_CONTROL:
                     *(uint32_t *)value = helper_v7m_mrs(&ARM_CPU(uc, mycpu)->env, 20);
                     break; 
+		case UC_ARM_REG_SPSR:
+                    cpsr = cpsr_read(&ARM_CPU(uc, mycpu)->env);
+		    banknum = bank_number(cpsr & 0x1f);
+                    *(uint32_t *)value = ARM_CPU(uc, mycpu)->env.banked_spsr[banknum];
+		    break;
             }
         }
     }
@@ -117,6 +126,8 @@ int arm_reg_read(struct uc_struct *uc, unsigned int *regs, void **vals, int coun
 int arm_reg_write(struct uc_struct *uc, unsigned int *regs, void* const* vals, int count)
 {
     CPUState *mycpu = uc->cpu;
+    unsigned int cpsr;
+    int banknum;
     int i;
 
     for (i = 0; i < count; i++) {
@@ -175,6 +186,11 @@ int arm_reg_write(struct uc_struct *uc, unsigned int *regs, void* const* vals, i
                  case UC_ARM_REG_CONTROL:
                     helper_v7m_msr(&ARM_CPU(uc, mycpu)->env, 20, *(uint32_t *)value);
                     break;
+		case UC_ARM_REG_SPSR:
+                    cpsr = cpsr_read(&ARM_CPU(uc, mycpu)->env);
+		    banknum = bank_number(cpsr & 0x1f);
+                    ARM_CPU(uc, mycpu)->env.banked_spsr[banknum] = *(uint32_t*)value;
+		    break;
             }
         }
     }
