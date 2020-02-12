@@ -4,7 +4,7 @@
 # Usage: cmake.sh [x86] [arm] [aarch64] [m68k] [mips] [sparc]
 # By chenhuitao 2019
 
-FLAGS="-DCMAKE_BUILD_TYPE=Release"
+FLAGS="-DCMAKE_BUILD_TYPE=Debug"
 
 UNICORN_ARCH="${*}"
 

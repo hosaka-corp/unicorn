@@ -790,6 +790,13 @@ uc_err uc_context_restore(uc_engine *uc, uc_context *context);
 UNICORN_EXPORT
 size_t uc_context_size(uc_engine *uc);
 
+UNICORN_EXPORT
+uc_err uc_excp_passthru(uc_engine *uc, bool en);
+
+UNICORN_EXPORT
+uc_err uc_assert_irq(uc_engine *uc);
+
+
 #ifdef __cplusplus
 }
 #endif

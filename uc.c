@@ -1347,3 +1347,10 @@ uc_err uc_context_restore(uc_engine *uc, uc_context *context)
     memcpy(uc->cpu->env_ptr, _context->data, _context->size);
     return UC_ERR_OK;
 }
+
+UNICORN_EXPORT
+uc_err uc_excp_passthru(uc_engine *uc, bool en) { uc->excp_passthru = en; }
+
+UNICORN_EXPORT
+uc_err uc_assert_irq(uc_engine *uc) { uc->cpu->interrupt_request = 2; }
+

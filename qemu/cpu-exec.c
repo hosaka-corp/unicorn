@@ -103,14 +103,18 @@ int cpu_exec(struct uc_struct *uc, CPUArchState *env)   // qq
             /* if an exception is pending, we execute it here */
             if (cpu->exception_index >= 0) {
                 //printf(">>> GOT INTERRUPT. exception idx = %x\n", cpu->exception_index);	// qq
+
+		// If this is a QEMU-internal exception, exit the cpu loop
                 if (cpu->exception_index >= EXCP_INTERRUPT) {
-                    /* exit request from the cpu execution loop */
                     ret = cpu->exception_index;
                     if (ret == EXCP_DEBUG) {
                         cpu_handle_debug_exception(env);
                     }
                     break;
-                } else {
+                } 
+		// Otherwise, the user may want to do something with this exception
+		else 
+		{
                     bool catched = false;
 #if defined(CONFIG_USER_ONLY)
                     /* if user mode only, we simulate a fake exception
@@ -122,20 +126,27 @@ int cpu_exec(struct uc_struct *uc, CPUArchState *env)   // qq
                     ret = cpu->exception_index;
                     break;
 #else
+
+
+		    // If this interrupt is fatal *according to unicorn*
                     if (uc->stop_interrupt && uc->stop_interrupt(cpu->exception_index)) {
                         // Unicorn: call registered invalid instruction callbacks
                         HOOK_FOREACH_VAR_DECLARE;
-                        HOOK_FOREACH(uc, hook, UC_HOOK_INSN_INVALID) {
+                        HOOK_FOREACH(uc, hook, UC_HOOK_INSN_INVALID) 
+			{
                             catched = ((uc_cb_hookinsn_invalid_t)hook->callback)(uc, hook->user_data);
-                            if (catched)
+                            if (!catched)
                                 break;
                         }
                         if (!catched)
                             uc->invalid_error = UC_ERR_INSN_INVALID;
-                    } else {
+                    } 
+		    else 
+		    {
                         // Unicorn: call registered interrupt callbacks
                         HOOK_FOREACH_VAR_DECLARE;
-                        HOOK_FOREACH(uc, hook, UC_HOOK_INTR) {
+                        HOOK_FOREACH(uc, hook, UC_HOOK_INTR)
+			{
                             ((uc_cb_hookintr_t)hook->callback)(uc, cpu->exception_index, hook->user_data);
                             catched = true;
                         }
@@ -143,12 +154,16 @@ int cpu_exec(struct uc_struct *uc, CPUArchState *env)   // qq
                             uc->invalid_error = UC_ERR_EXCEPTION;
                     }
 
-                    // Unicorn: If un-catched interrupt, stop executions.
-                    if (!catched) {
-                        cpu->halted = 1;
-                        ret = EXCP_HLT;
-                        break;
-                    }
+		    //Unicorn: If un-catched interrupt, stop executions.
+		    if (!catched) {
+			cpu->halted = 1;
+			ret = EXCP_HLT;
+			break;
+		    }
+
+		    // Actually do an interrupt instead of making the user do it
+		    if (uc->excp_passthru)
+			cc->do_interrupt(cpu);
 
                     cpu->exception_index = -1;
 #if defined(TARGET_X86_64)
@@ -213,6 +228,7 @@ int cpu_exec(struct uc_struct *uc, CPUArchState *env)   // qq
                         /* ensure that no TB jump will be modified as
                            the program flow was changed */
                         next_tb = 0;
+			cpu->interrupt_request = 0;
                     }
                 }
 

@@ -434,7 +434,7 @@ static void arm926_initfn(struct uc_struct *uc, Object *obj, void *opaque)
     cpu->midr = 0x41069265;
     cpu->reset_fpsid = 0x41011090;
     cpu->ctr = 0x1dd20d2;
-    cpu->reset_sctlr = 0x00090078;
+    cpu->reset_sctlr = 0x00092078;
 }
 
 static void arm946_initfn(struct uc_struct *uc, Object *obj, void *opaque)
